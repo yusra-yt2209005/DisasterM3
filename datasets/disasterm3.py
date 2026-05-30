@@ -1,6 +1,7 @@
 import json
 from os.path import join
 from typing import List, Dict
+
 from datasets.base import BaseDataset
 
 
@@ -9,8 +10,8 @@ class DisasterM3Dataset(BaseDataset):
     DisasterM3 dataset adapter.
 
     Responsible ONLY for:
-    - loading JSON data
-    - attaching sample IDs
+    - loading JSON
+    - assigning IDs
     - filtering completed samples
     """
 
@@ -20,25 +21,27 @@ class DisasterM3Dataset(BaseDataset):
         self.finish_ids = finish_ids or []
 
     def load(self) -> List[Dict]:
-        dataset_path = join(self.project_root, "data", f"{self.subset}.json")
+        # 1. Locate dataset file
+        subset_json = join(self.project_root, "data", f"{self.subset}.json")
 
-        with open(dataset_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        # 2. Load raw dataset
+        with open(subset_json, "r", encoding="utf-8") as f:
+            raw_data = json.load(f)
 
-        # Step 1: attach stable IDs (keeps compatibility with original pipeline)
-        processed_data = [
+        # 3. Standardize format (attach IDs)
+        dataset = [
             {
                 "id": f"{self.subset}_{i}",
                 **item
             }
-            for i, item in enumerate(data)
+            for i, item in enumerate(raw_data)
         ]
 
-        # Step 2: resume support (skip finished samples)
+        # 4. Resume capability (skip finished samples)
         if self.finish_ids:
-            processed_data = [
-                item for item in processed_data
+            dataset = [
+                item for item in dataset
                 if item["id"] not in self.finish_ids
             ]
 
-        return processed_data
+        return dataset
